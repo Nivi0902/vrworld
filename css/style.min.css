@@ -12,6 +12,17 @@ section {
   padding-bottom: 110px;
 }
 
+#loader {
+  display: none;
+  font-size: 16px;
+  color: #000; /* Adjust color as needed */
+}
+
+#responseMessage {
+  margin-top: 10px;
+  font-size: 16px;
+}
+
 /* footer social icon css */
 
 .social-icons {
@@ -54,6 +65,7 @@ section {
 }
 
 /* footer social icon css ends here */
+
 
 a,
 body {
