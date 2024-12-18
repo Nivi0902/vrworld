@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multiparty": "^4.2.3",
+    "nodemailer": "^6.9.16"
+  }
+}

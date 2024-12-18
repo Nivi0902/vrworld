@@ -3370,181 +3370,236 @@
   $(".all-demo a").click(function (event) {
     event.preventDefault();
   });
-})(jQuery);
-function initMap() {
-  $(".map").each(function (e) {
-    let _this = $(this),
-      mapOptions = _this.attr("data-map-options");
-    if (typeof mapOptions !== "undefined" && mapOptions !== null) {
-      mapOptions = $.parseJSON(mapOptions);
-    }
-    let lat = mapOptions.lat ? mapOptions.lat : 19.07,
-      lng = mapOptions.lng ? mapOptions.lng : 72.87,
-      marker = mapOptions.marker,
-      popup = mapOptions.popup;
-    switch (mapOptions.style && mapOptions.style.toLowerCase()) {
-      case "retro":
-        map_style = Retro;
-        break;
-      case "standard":
-        map_style = Standard;
-        break;
-      case "silver":
-        map_style = Silver;
-        break;
-      case "dark":
-        map_style = Dark;
-        break;
-      case "night":
-        map_style = Night;
-        break;
-      case "aubergine":
-        map_style = Aubergine;
-        break;
-      default:
-        map_style = Silver;
-    }
-    const gmap = new google.maps.Map(this, {
-      zoom: 13,
-      center: new google.maps.LatLng(lat, lng),
-      mapTypeId: google.maps.MapTypeId.READMAP,
-      styles: map_style,
-    });
-    const infowindow = new google.maps.InfoWindow({
-      content: popup && popup.html,
-      maxWidth: 300,
-    });
-    infowindow.setPosition(new google.maps.LatLng(lat, lng));
-    if (marker !== null && marker !== undefined) {
-      if (marker.type.toLowerCase() === "html") {
-        function HTMLMarker(lat, lng) {
-          this.lat = lat;
-          this.lng = lng;
-          this.pos = new google.maps.LatLng(lat, lng);
-        }
-        HTMLMarker.prototype = new google.maps.OverlayView();
-        HTMLMarker.prototype.onAdd = function () {
-          div = document.createElement("DIV");
-          div.className = `arrow_box ${marker.class ? " " + marker.class : ""}`;
-          div.innerHTML = `<span style='background-color: ${marker.color}; border-color: ${marker.color}'></span><span style='background-color: ${marker.color}; border-color: ${marker.color}'></span>`;
-          div.style.setProperty("background-color", marker.color);
-          let panes = this.getPanes();
-          panes.overlayImage.appendChild(div);
-          let flag = false;
-          if (popup.defaultOpen === true) {
-            flag = true;
-            infowindow.setOptions({
-              pixelOffset: new google.maps.Size(10, -30),
-            });
-            infowindow.open(gmap);
+
+  function initMap() {
+    $(".map").each(function (e) {
+      let _this = $(this),
+        mapOptions = _this.attr("data-map-options");
+      if (typeof mapOptions !== "undefined" && mapOptions !== null) {
+        mapOptions = $.parseJSON(mapOptions);
+      }
+      let lat = mapOptions.lat ? mapOptions.lat : 19.07,
+        lng = mapOptions.lng ? mapOptions.lng : 72.87,
+        marker = mapOptions.marker,
+        popup = mapOptions.popup;
+      switch (mapOptions.style && mapOptions.style.toLowerCase()) {
+        case "retro":
+          map_style = Retro;
+          break;
+        case "standard":
+          map_style = Standard;
+          break;
+        case "silver":
+          map_style = Silver;
+          break;
+        case "dark":
+          map_style = Dark;
+          break;
+        case "night":
+          map_style = Night;
+          break;
+        case "aubergine":
+          map_style = Aubergine;
+          break;
+        default:
+          map_style = Silver;
+      }
+      const gmap = new google.maps.Map(this, {
+        zoom: 13,
+        center: new google.maps.LatLng(lat, lng),
+        mapTypeId: google.maps.MapTypeId.READMAP,
+        styles: map_style,
+      });
+      const infowindow = new google.maps.InfoWindow({
+        content: popup && popup.html,
+        maxWidth: 300,
+      });
+      infowindow.setPosition(new google.maps.LatLng(lat, lng));
+      if (marker !== null && marker !== undefined) {
+        if (marker.type.toLowerCase() === "html") {
+          function HTMLMarker(lat, lng) {
+            this.lat = lat;
+            this.lng = lng;
+            this.pos = new google.maps.LatLng(lat, lng);
           }
-          google.maps.event.addDomListener(div, "click", function (event) {
-            if (popup) {
+          HTMLMarker.prototype = new google.maps.OverlayView();
+          HTMLMarker.prototype.onAdd = function () {
+            div = document.createElement("DIV");
+            div.className = `arrow_box ${marker.class ? " " + marker.class : ""}`;
+            div.innerHTML = `<span style='background-color: ${marker.color}; border-color: ${marker.color}'></span><span style='background-color: ${marker.color}; border-color: ${marker.color}'></span>`;
+            div.style.setProperty("background-color", marker.color);
+            let panes = this.getPanes();
+            panes.overlayImage.appendChild(div);
+            let flag = false;
+            if (popup.defaultOpen === true) {
+              flag = true;
               infowindow.setOptions({
                 pixelOffset: new google.maps.Size(10, -30),
               });
+              infowindow.open(gmap);
+            }
+            google.maps.event.addDomListener(div, "click", function (event) {
+              if (popup) {
+                infowindow.setOptions({
+                  pixelOffset: new google.maps.Size(10, -30),
+                });
+                if (flag === false) {
+                  infowindow.open(gmap);
+                  flag = true;
+                } else {
+                  infowindow.close();
+                  flag = false;
+                }
+              }
+            });
+          };
+          HTMLMarker.prototype.draw = function () {
+            let overlayProjection = this.getProjection();
+            let position = overlayProjection.fromLatLngToDivPixel(this.pos);
+            let panes = this.getPanes();
+            panes.overlayImage.style.left = position.x + "px";
+            panes.overlayImage.style.top = position.y - 30 + "px";
+          };
+          let htmlMarker = new HTMLMarker(lat, lng);
+          htmlMarker.setMap(gmap);
+        } else {
+          const image_marker = new google.maps.Marker({
+            icon: { url: marker.src },
+            position: { lat: lat, lng: lng },
+            map: gmap,
+            animation: google.maps.Animation.DROP,
+          });
+          let flag = false;
+          if (popup.defaultOpen === true) {
+            infowindow.open({ anchor: image_marker, map: gmap });
+            flag = true;
+          }
+          image_marker.addListener("click", toggleBounce);
+          function toggleBounce() {
+            if (image_marker.getAnimation() !== null) {
+              image_marker.setAnimation(null);
+            } else {
+              image_marker.setAnimation(google.maps.Animation.BOUNCE);
+            }
+            if (popup) {
               if (flag === false) {
-                infowindow.open(gmap);
+                infowindow.open({ anchor: image_marker, map: gmap });
                 flag = true;
               } else {
                 infowindow.close();
                 flag = false;
               }
             }
-          });
-        };
-        HTMLMarker.prototype.draw = function () {
-          let overlayProjection = this.getProjection();
-          let position = overlayProjection.fromLatLngToDivPixel(this.pos);
-          let panes = this.getPanes();
-          panes.overlayImage.style.left = position.x + "px";
-          panes.overlayImage.style.top = position.y - 30 + "px";
-        };
-        let htmlMarker = new HTMLMarker(lat, lng);
-        htmlMarker.setMap(gmap);
+          }
+        }
       } else {
-        const image_marker = new google.maps.Marker({
-          icon: { url: marker.src },
+        const marker = new google.maps.Marker({
           position: { lat: lat, lng: lng },
           map: gmap,
-          animation: google.maps.Animation.DROP,
         });
         let flag = false;
         if (popup.defaultOpen === true) {
-          infowindow.open({ anchor: image_marker, map: gmap });
+          infowindow.open({ anchor: marker, map: gmap });
           flag = true;
         }
-        image_marker.addListener("click", toggleBounce);
-        function toggleBounce() {
-          if (image_marker.getAnimation() !== null) {
-            image_marker.setAnimation(null);
-          } else {
-            image_marker.setAnimation(google.maps.Animation.BOUNCE);
-          }
+        marker.addListener("click", function () {
           if (popup) {
             if (flag === false) {
-              infowindow.open({ anchor: image_marker, map: gmap });
+              infowindow.open({ anchor: marker, map: gmap });
               flag = true;
             } else {
               infowindow.close();
               flag = false;
             }
           }
-        }
+        });
       }
-    } else {
-      const marker = new google.maps.Marker({
-        position: { lat: lat, lng: lng },
-        map: gmap,
-      });
-      let flag = false;
-      if (popup.defaultOpen === true) {
-        infowindow.open({ anchor: marker, map: gmap });
-        flag = true;
-      }
-      marker.addListener("click", function () {
-        if (popup) {
-          if (flag === false) {
-            infowindow.open({ anchor: marker, map: gmap });
-            flag = true;
-          } else {
-            infowindow.close();
-            flag = false;
-          }
-        }
-      });
-    }
-  });
-}
+    });
+  }
 
+  //nodemailer method
+const form = document.getElementById("contact-form");
 
-//php contact form capture 
-document.querySelector('#career-form').addEventListener('submit', function (e) {
-  e.preventDefault(); // Prevent default form submission
-
-  const form = e.target;
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
   const formData = new FormData(form);
 
-  fetch('careerformr.php', {
-      method: 'POST',
-      body: formData
+  fetch("/send", {
+    method: "POST",
+    body: formData,
   })
-      .then(response => {
-          if (!response.ok) {
-              throw new Error('Network response was not ok');
-          }
-          return response.json(); // Parse JSON response
-      })
-      .then(data => {
-          if (data.status === 'success') {
-              alert(data.message);
-              form.reset(); // Optional: Reset the form
-          } else {
-              alert(data.message);
-          }
-      })
-      .catch(error => {
-          console.error('Error:', error);
-          alert('An error occurred while submitting the form. Please try again.');
-      });
+    .then((response) => {
+      if (response.ok) {
+        alert("Message sent successfully!");
+      } else {
+        alert("Failed to send the message.");
+      }
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+    });
 });
+
+
+
+
+})(jQuery);
+
+
+// //php contact form capture 
+// document.querySelector('#career-form').addEventListener('submit', function (e) {
+//   e.preventDefault(); // Prevent default form submission
+
+//   const form = e.target;
+//   const formData = new FormData(form);
+
+//   fetch('careerformr.php', {
+//       method: 'POST',
+//       body: formData
+//   })
+//       .then(response => {
+//           if (!response.ok) {
+//               throw new Error('Network response was not ok');
+//           }
+//           return response.json(); // Parse JSON response
+//       })
+//       .then(data => {
+//           if (data.status === 'success') {
+//               alert(data.message);
+//               form.reset(); // Optional: Reset the form
+//           } else {
+//               alert(data.message);
+//           }
+//       })
+//       .catch(error => {
+//           console.error('Error:', error);
+//           alert('An error occurred while submitting the form. Please try again.');
+//       });
+// });
+
+// //18-12-2024 
+// $(document).ready(function() {
+//   $('#contactForm').on('submit', function(e) {
+//     e.preventDefault(); // Prevent default form submission
+    
+//     $('#loader').show(); // Show loading spinner
+
+//     var formData = $(this).serialize(); // Serialize form data
+
+//     $.ajax({
+//       url: '/send-email', // Change to your backend route for email handling
+//       type: 'POST',        // HTTP method
+//       data: formData,      // Form data
+//       success: function(response) {
+//         $('#loader').hide(); // Hide loader
+//         $('#responseMessage').removeClass('d-none alert-danger').addClass('alert-success').text(response.message);
+//       },
+//       error: function() {
+//         $('#loader').hide(); // Hide loader
+//         $('#responseMessage').removeClass('d-none alert-success').addClass('alert-danger').text('An error occurred. Please try again.');
+//       }
+//     });
+//   });
+// });
+
+
