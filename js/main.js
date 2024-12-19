@@ -1957,46 +1957,51 @@
 
   //form
   
-  $(document).on("click", ".submit", function () {
+  $(document).on("click", ".submit", function (event) {
+    event.preventDefault();
     var error = false,
       _this = $(this),
       formObj = _this.parents("form"),
       emailFormat = /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/,
-      urlformat =
-        /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/,
+      urlformat = /(ftp|http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/,
       telFormat = /[0-9 -()+]+$/,
       actionURL = formObj.attr("action"),
       resultsObj = formObj.find(".form-results"),
       grecaptchav3 = _this.attr("data-sitekey") || "",
       redirectVal = formObj.find('[name="redirect"]').val();
+  
+    // Reset validation states
     formObj.find(".required").removeClass("is-invalid");
+  
+    // Validate required fields
     formObj.find(".required").each(function () {
       var __this = $(this),
-        fieldVal = __this.val();
-      if (fieldVal == "" || fieldVal == undefined) {
+        fieldVal = __this.val().trim();
+        __this.val(fieldVal);
+
+      if (fieldVal === "" || fieldVal === undefined) {
         error = true;
         __this.addClass("is-invalid");
-      } else if (
-        __this.attr("type") == "email" &&
-        !emailFormat.test(fieldVal)
-      ) {
+      } else if (__this.attr("type") === "email" && !emailFormat.test(fieldVal)) {
         error = true;
         __this.addClass("is-invalid");
-      } else if (__this.attr("type") == "url" && !urlformat.test(fieldVal)) {
+      } else if (__this.attr("type") === "url" && !urlformat.test(fieldVal)) {
         error = true;
         __this.addClass("is-invalid");
-      } else if (__this.attr("type") == "tel" && !telFormat.test(fieldVal)) {
+      } else if (__this.attr("type") === "tel" && !telFormat.test(fieldVal)) {
         error = true;
         __this.addClass("is-invalid");
       }
     });
+  
+    // Validate terms and conditions
     var termsObj = formObj.find(".terms-condition");
-    if (termsObj.length) {
-      if (!termsObj.is(":checked")) {
-        error = true;
-        termsObj.addClass("is-invalid");
-      }
+    if (termsObj.length && !termsObj.is(":checked")) {
+      error = true;
+      termsObj.addClass("is-invalid");
     }
+  
+    // Validate reCAPTCHA if applicable
     if (typeof grecaptcha !== "undefined" && grecaptcha !== null) {
       if (formObj.find(".g-recaptcha").length) {
         var gResponse = grecaptcha.getResponse();
@@ -2004,58 +2009,58 @@
           error = true;
           formObj.find(".g-recaptcha").addClass("is-invalid");
         }
-      } else if (grecaptchav3 != "" && grecaptchav3 != undefined) {
+      } else if (grecaptchav3) {
         grecaptcha.ready(function () {
-          grecaptcha
-            .execute(grecaptchav3, { action: "submit" })
-            .then(function (token) {});
+          grecaptcha.execute(grecaptchav3, { action: "submit" }).then(function (token) {
+            // You can send the token to your server if needed
+          });
         });
       }
     }
-    if (!error && actionURL != "" && actionURL != undefined) {
+  
+    // If no errors, proceed with AJAX submission
+    if (!error && actionURL) {
       _this.addClass("loading");
+
+          // Trim the name and email fields before sending
+      const nameField = formObj.find('input[name="name"]');
+      const emailField = formObj.find('input[name="email"]');
+      
+      nameField.val(nameField.val().trim());
+      emailField.val(emailField.val().trim());
+
       $.ajax({
         type: "POST",
         url: actionURL,
         data: formObj.serialize(),
+        dataType: "json", // Expect JSON response
         success: function (result) {
           _this.removeClass("loading");
-          if (redirectVal != "" && redirectVal != undefined) {
+          if (redirectVal) {
             window.location.href = redirectVal;
           } else {
-            if (typeof result !== "undefined" && result !== null) {
-              result = $.parseJSON(result);
-            }
-            formObj
-              .find(
-                "input[type=text],input[type=url],input[type=email],input[type=tel],input[type=password],textarea"
-              )
-              .each(function () {
-                $(this).val("");
-                $(this).removeClass("is-invalid");
-              });
+            // No need to parse result, it's already a JSON object
+            formObj.find("input[type=text], input[type=url], input[type=email], input[type=tel], input[type=password], textarea").each(function () {
+              $(this).val("").removeClass("is-invalid");
+            });
             formObj.find(".g-recaptcha").removeClass("is-invalid");
-            formObj
-              .find("input[type=checkbox],input[type=radio]")
-              .prop("checked", false);
+            formObj.find("input[type=checkbox], input[type=radio]").prop("checked", false);
             if (formObj.find(".g-recaptcha").length) {
               grecaptcha.reset();
             }
-            resultsObj
-              .removeClass("alert-success")
-              .removeClass("alert-danger")
-              .hide();
+            resultsObj.removeClass("alert-success alert-danger").hide();
             resultsObj.addClass(result.alert).html(result.message);
-            resultsObj
-              .removeClass("d-none")
-              .fadeIn("slow")
-              .delay(4000)
-              .fadeOut("slow");
+            resultsObj.removeClass("d-none").fadeIn("slow").delay(4000).fadeOut("slow");
           }
         },
+        error: function (xhr, status, error) {
+          _this.removeClass("loading");
+          console.error("AJAX Error:", error);
+          resultsObj.removeClass("alert-success").addClass("alert-danger").html("An error occurred while sending your message.").fadeIn("slow").delay(4000).fadeOut("slow");
+        }
       });
     }
-    return false;
+    return false; // Prevent default form submission
   });
   $(document).on("blur", ".required", function () {
     var emailFormat = /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/,
@@ -3518,18 +3523,42 @@
   }
 
   //nodemailer method
-const form = document.getElementById("contact-form");
+  const form = document.getElementById("contact-form");
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
+
+  // Trim input values
+  const nameField = form.querySelector('input[name="name"]');
+  const emailField = form.querySelector('input[name="email"]');
+  const messageField = form.querySelector('textarea[name="message"]');
+
+  nameField.value = nameField.value.trim();
+  emailField.value = emailField.value.trim();
+  messageField.value = messageField.value.trim();
+
+  // Create FormData object
   const formData = new FormData(form);
+
+  // Log the form data
+  console.log("Form Data:", Array.from(formData.entries()));
 
   fetch("/send", {
     method: "POST",
     body: formData,
   })
     .then((response) => {
-      if (response.ok) {
+      console.log("Response received:", response); // Log the response object
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        return response.json();
+      } else {
+        throw new Error("Response is not JSON");
+      }
+    })
+    .then((data) => {
+      console.log("Data received:", data); // Log the parsed data
+      if (data.message) {
         alert("Message sent successfully!");
       } else {
         alert("Failed to send the message.");
@@ -3537,70 +3566,11 @@ form.addEventListener("submit", (event) => {
     })
     .catch((error) => {
       console.error("Error:", error);
+      alert("An error occurred: " + error.message);
     });
 });
 
-
-
-
-
 })(jQuery);
 
-
-// //php contact form capture 
-// document.querySelector('#career-form').addEventListener('submit', function (e) {
-//   e.preventDefault(); // Prevent default form submission
-
-//   const form = e.target;
-//   const formData = new FormData(form);
-
-//   fetch('careerformr.php', {
-//       method: 'POST',
-//       body: formData
-//   })
-//       .then(response => {
-//           if (!response.ok) {
-//               throw new Error('Network response was not ok');
-//           }
-//           return response.json(); // Parse JSON response
-//       })
-//       .then(data => {
-//           if (data.status === 'success') {
-//               alert(data.message);
-//               form.reset(); // Optional: Reset the form
-//           } else {
-//               alert(data.message);
-//           }
-//       })
-//       .catch(error => {
-//           console.error('Error:', error);
-//           alert('An error occurred while submitting the form. Please try again.');
-//       });
-// });
-
-// //18-12-2024 
-// $(document).ready(function() {
-//   $('#contactForm').on('submit', function(e) {
-//     e.preventDefault(); // Prevent default form submission
-    
-//     $('#loader').show(); // Show loading spinner
-
-//     var formData = $(this).serialize(); // Serialize form data
-
-//     $.ajax({
-//       url: '/send-email', // Change to your backend route for email handling
-//       type: 'POST',        // HTTP method
-//       data: formData,      // Form data
-//       success: function(response) {
-//         $('#loader').hide(); // Hide loader
-//         $('#responseMessage').removeClass('d-none alert-danger').addClass('alert-success').text(response.message);
-//       },
-//       error: function() {
-//         $('#loader').hide(); // Hide loader
-//         $('#responseMessage').removeClass('d-none alert-success').addClass('alert-danger').text('An error occurred. Please try again.');
-//       }
-//     });
-//   });
-// });
 
 
