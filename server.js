@@ -35,46 +35,27 @@ transporter.verify((error, success) => {
 
 // Handle form submission (POST request)
 app.post("/send", (req, res) => {
-  console.log("Received request at /send"); // Log when the request is received
-  console.log("Request body:", req.body); // Log the incoming data
-
   const data = req.body;
 
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(data.email)) {
-    console.error("Invalid email format:", data.email); // Log invalid email
-    return res.status(400).json({ error: "Invalid email format." });
-  }
-
-  // Sanitize input
-  const name = data.name.replace(/<[^>]*>/g, ""); // Remove HTML tags
-  const email = data.email.replace(/<[^>]*>/g, ""); // Remove HTML tags
-  const message = data.message.replace(/<[^>]*>/g, ""); // Remove HTML tags
-
-  // Construct the email
   const mail = {
-    from: `${name} <${email}>`,
+    from: `${data.name} <${data.email}>`,
     to: process.env.EMAIL,
-    subject: "Contact Request", // Ensure the subject is set
-    text: `Contact Request\nName: ${name}\n\nEmail: ${email}\n\nMessage: ${message}`,
+    subject: "Contact Request",
+    text: `Contact Request\nName: ${data.name}\n\nEmail: ${data.email}\n\nPhone: ${data.phone}\n\nMessage: ${data.message}`,
     html: `<p><strong>Contact Request</strong></p>
-           <p><strong>Name:</strong> ${name}</p>
-           <p><strong>Email:</strong> ${email}</p>
-           <p><strong>Message:</strong><br>${message}</p>`
+           <p><strong>Name:</strong> ${data.name}</p>
+           <p><strong>Email:</strong> ${data.email}</p>
+           <p><strong>Phone:</strong> ${data.phone}</p>
+           <p><strong>Message:</strong><br>${data.message}</p>`
   };
 
-  // Log the mail object to verify its contents
-  console.log("Mail object:", mail); // Log the mail object
-
-  // Send the email using your email transport method
   transporter.sendMail(mail, (err, info) => {
     if (err) {
       console.error("Email sending error:", err);
       return res.status(500).json({ error: "Email sending error." });
     } else {
       console.log("Email sent: " + info.response);
-      return res.status(200).json({ message: "Email sent successfully!" });
+      return res.status(200).json({ message: "Email successfully sent to recipient!" });
     }
   });
 });
@@ -93,4 +74,3 @@ app.get("/Contact details.html", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
